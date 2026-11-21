@@ -53,7 +53,7 @@ For a random-frozen-feature control, use the same command without `--init-encode
 
 ### ImageFolder pretraining and transfer
 
-For broader unlabeled image collections, arrange files as `data-root/class-name/image.jpg` and run `pixrel-pretrain --dataset imagefolder`. Class names and labels are ignored during pretraining. The output includes `encoder_bundle.pt`, which stores encoder weights, variant, input size, and normalization. CIFAR-100 remains the default dataset for reproducing the pilot above.
+For broader unlabeled image collections, point `pixrel-pretrain --dataset imagefolder` at any existing directory containing supported images. Images can sit directly in that directory or in nested folders; labels and folder names are ignored during pretraining. The output includes `encoder_bundle.pt`, which stores encoder weights, variant, input size, and normalization. CIFAR-100 remains the default dataset for reproducing the pilot above.
 
 Example GPU run in Colab (start with a small batch; larger image sizes use more memory):
 

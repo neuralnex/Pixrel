@@ -11,8 +11,9 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import datasets, transforms
+from torchvision.datasets.folder import IMG_EXTENSIONS, default_loader
 
 from pixrel.models.encoder import PixrelEncoder
 from pixrel.pretraining.masking import block_mask
@@ -55,6 +56,34 @@ class RGBReconstructionHead(nn.Module):
                 prediction = F.interpolate(prediction, size=output_size, mode="bilinear", align_corners=False)
             predictions.append(prediction)
         return predictions
+
+
+class UnlabeledImageFolder(Dataset):
+    """Recursively load images from a flat or nested directory without class labels."""
+    def __init__(self, root, transform):
+        self.root = Path(root).expanduser()
+        if not self.root.is_dir():
+            raise FileNotFoundError(
+                f"ImageFolder data directory does not exist: {self.root}. "
+                "Mount/copy your images to Colab and pass that real directory with --data."
+            )
+        valid_extensions = {extension.lower() for extension in IMG_EXTENSIONS}
+        self.paths = sorted(path for path in self.root.rglob("*")
+                            if path.is_file() and path.suffix.lower() in valid_extensions)
+        if not self.paths:
+            raise FileNotFoundError(
+                f"No supported images found under {self.root}. Add JPG/PNG images or check the mounted data path."
+            )
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, index):
+        image = default_loader(str(self.paths[index]))
+        if self.transform:
+            image = self.transform(image)
+        return image, 0
 
 
 def _rng_state():
@@ -123,7 +152,7 @@ def _make_loader(args, generator):
             transforms.ToTensor(),
             transforms.Normalize((.485, .456, .406), (.229, .224, .225)),
         ])
-        dataset = datasets.ImageFolder(args.data, transform=transform)
+        dataset = UnlabeledImageFolder(args.data, transform=transform)
         train_split = dataset
     return DataLoader(train_split, batch_size=args.batch_size, shuffle=True,
                       num_workers=args.workers, generator=generator,
@@ -143,7 +172,7 @@ def _make_visual_batch(args):
             transforms.Resize(args.image_size), transforms.CenterCrop(args.image_size),
             transforms.ToTensor(), transforms.Normalize(mean, std),
         ])
-        dataset = datasets.ImageFolder(args.data, transform=transform)
+        dataset = UnlabeledImageFolder(args.data, transform=transform)
         available = range(len(dataset))
     rng = np.random.default_rng(args.seed)
     selected = rng.choice(list(available), size=min(args.visualize_samples, len(available)), replace=False)

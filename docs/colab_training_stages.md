@@ -31,13 +31,14 @@ If the repository is not cloned into this runtime yet, clone it to /content/Pixr
 
 ## Stage 1 — Prepare image folders
 
-Unlabeled pretraining uses ImageFolder to find files; labels are ignored. Put images inside at least one subfolder:
+Unlabeled pretraining scans the chosen directory recursively; images can be flat or nested, and folder names are ignored. The directory must exist and contain supported image files:
 
 ~~~text
 /content/unlabeled-images/
-└── all/
-    ├── image-0001.jpg
-    └── ...
+├── image-0001.jpg
+├── image-0002.png
+└── more-images/
+    └── image-0003.jpg
 ~~~
 
 For downstream classification, keep splits separate and use one class directory per label:
