@@ -1,6 +1,6 @@
 # PIXREL
 
-PIXREL (Pixel Relationship Learning) is an experimental computer vision research project. This repository starts with a reproducible, CPU-capable implementation of a pixel relationship encoder and the controls needed to test whether adaptive local relationships add value over convolution or fixed neighborhood aggregation.
+PIXREL (Pixel Relationship Learning) is an experimental computer vision research project. This repository starts with a reproducible implementation of a pixel relationship encoder and the controls needed to test whether adaptive local relationships add value over convolution or fixed neighborhood aggregation. Training can run on CPU or CUDA GPUs.
 
 No performance or foundation-model claims are made. A model becomes meaningful only after real-data training and controlled evaluation.
 
@@ -14,16 +14,16 @@ python -m venv .venv
 pip install -e .
 ```
 
-Run a CPU CIFAR-100 experiment (downloads the dataset on first run):
+Run a CIFAR-100 experiment (downloads the dataset on first run). `--device auto` uses CUDA when PyTorch can see a GPU, otherwise CPU:
 
 ```bash
-pixrel-train --variant adaptive --seed 17 --epochs 20 --data ./data --output ./outputs/adaptive-seed17
-pixrel-evaluate --checkpoint ./outputs/adaptive-seed17/best.pt --data ./data --output ./outputs/adaptive-seed17/eval.json
+pixrel-train --variant adaptive --seed 17 --epochs 20 --data ./data --output ./outputs/adaptive-seed17 --device auto
+pixrel-evaluate --checkpoint ./outputs/adaptive-seed17/best.pt --data ./data --output ./outputs/adaptive-seed17/eval.json --device auto
 ```
 
-Variants are `adaptive`, `fixed`, and `conv`. Run each with the same seeds and training settings. CPU runtime can be substantial; begin with `--epochs 1 --limit-train-batches 10 --limit-val-batches 5` as a pipeline smoke run. These limited runs are not benchmark results. Use `--threads` to control CPU parallelism. The code selects CPU explicitly and does not initialize CUDA.
+Variants are `adaptive`, `fixed`, and `conv`. Run each with the same seeds and training settings. Begin with `--epochs 1 --limit-train-batches 10 --limit-val-batches 5` as a pipeline smoke run. These limited runs are not benchmark results. Use `--device cpu` to force CPU, `--device cuda` to require a visible CUDA GPU, or `--device auto` to select automatically. Use `--threads` to control CPU parallelism.
 
-The CIFAR download progress reaching `100%` only marks the download/extraction step; training follows afterward. The script now prints when data is ready, when each epoch begins, and a status line every 10 training batches. The adaptive model is compute intensive on CPU, so a full epoch can take a while.
+The CIFAR download progress reaching `100%` only marks the download/extraction step; training follows afterward. The script prints when data is ready, when each epoch begins, and a status line every 10 training batches.
 
 ## Research protocol
 

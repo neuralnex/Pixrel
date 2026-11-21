@@ -10,11 +10,11 @@ Run `adaptive`, `fixed`, and `conv`, with seeds 17, 29, and 43. Keep input resol
 
 ## Record
 
-Retain each command/config, seed, source revision, dependency versions, train/validation history, best checkpoint, test metrics, parameter count, elapsed time, CPU thread count, and peak resident memory if measured. Report per-seed results and mean ± standard deviation. Do not treat limited-batch/short-epoch runs as benchmark evidence. Parameter counts are not matched by this initial implementation, so report them and avoid attributing differences solely to the relationship mechanism if capacity differs materially.
+Retain each command/config, seed, source revision, dependency versions, train/validation history, best checkpoint, test metrics, parameter count, elapsed time, device model, CPU thread count, and peak memory if measured. Report per-seed results and mean ± standard deviation. Do not treat limited-batch/short-epoch runs as benchmark evidence. Parameter counts are not matched by this initial implementation, so report them and avoid attributing differences solely to the relationship mechanism if capacity differs materially.
 
-## CPU execution
+## Device execution
 
-The scripts place tensors and models on CPU and never call CUDA APIs. Use `--threads` to set PyTorch CPU intra-op threads; `--workers 0` is the reproducible default. Training can take a long time on a small CPU. First check the pipeline with a limited run, then launch full conditions when runtime permits.
+The scripts accept `--device cpu`, `--device cuda`, or `--device auto`; auto selects CUDA when available. Record the actual device and GPU model for every run. Keep all compared variants on the same device and use `--threads` to set CPU intra-op threads; `--workers 0` is the reproducible default. First check the pipeline with a limited run, then launch full conditions when runtime permits.
 
 ## Current limitations
 

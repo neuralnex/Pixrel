@@ -47,9 +47,10 @@ def _accuracy(model, loader, device, limit=None):
 
 
 def train_main():
-    p=argparse.ArgumentParser(description="Train a PIXREL CIFAR-100 variant on CPU")
+    p=argparse.ArgumentParser(description="Train a PIXREL CIFAR-100 variant")
     p.add_argument("--variant",choices=["adaptive","fixed","conv"],default="adaptive"); p.add_argument("--seed",type=int,default=17)
     p.add_argument("--epochs",type=int,default=20); p.add_argument("--batch-size",type=int,default=16); p.add_argument("--threads",type=int,default=2)
+    p.add_argument("--device",choices=["auto","cpu","cuda"],default="auto",help="auto uses CUDA when available")
     p.add_argument("--workers",type=int,default=0); p.add_argument("--data",default="./data"); p.add_argument("--output",default="./outputs/run")
     p.add_argument("--lr",type=float,default=.1); p.add_argument("--weight-decay",type=float,default=5e-4)
     p.add_argument("--limit-train-batches",type=int); p.add_argument("--limit-val-batches",type=int)
@@ -58,9 +59,14 @@ def train_main():
 
 def _train(args):
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed); torch.set_num_threads(args.threads)
-    device=torch.device("cpu")
+    if args.device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("--device cuda was requested, but CUDA is unavailable. In Colab, select a GPU runtime and verify torch.cuda.is_available().")
+    device=torch.device("cuda" if args.device == "auto" and torch.cuda.is_available() else ("cpu" if args.device == "auto" else args.device))
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(args.seed)
     train,val,_=_data(args)
-    print(f"Data ready: {len(train.dataset)} train / {len(val.dataset)} validation examples; device=cpu", flush=True)
+    device_name = torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"
+    print(f"Data ready: {len(train.dataset)} train / {len(val.dataset)} validation examples; device={device_name}", flush=True)
     model=PixrelEncoder(variant=args.variant).to(device)
     optimizer=torch.optim.SGD(model.parameters(),lr=args.lr,momentum=.9,weight_decay=args.weight_decay)
     scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,args.epochs)
@@ -87,7 +93,7 @@ def _train(args):
             best=metrics["accuracy"]; torch.save(state,output/"best.pt")
         (output/"history.json").write_text(json.dumps(history,indent=2))
     elapsed=time.perf_counter()-start
-    summary={"variant":args.variant,"seed":args.seed,"elapsed_seconds":elapsed,"parameters":sum(p.numel() for p in model.parameters()),"best_val_accuracy":best,"device":"cpu","config":vars(args)}
+    summary={"variant":args.variant,"seed":args.seed,"elapsed_seconds":elapsed,"parameters":sum(p.numel() for p in model.parameters()),"best_val_accuracy":best,"device":str(device),"device_name":device_name,"config":vars(args)}
     (output/"run.json").write_text(json.dumps(summary,indent=2)); print(json.dumps(summary),flush=True)
 
 
@@ -95,9 +101,13 @@ def eval_main():
     p=argparse.ArgumentParser(description="Evaluate a PIXREL checkpoint on CIFAR-100 test split")
     p.add_argument("--checkpoint",required=True); p.add_argument("--data",default="./data"); p.add_argument("--output",default="eval.json")
     p.add_argument("--batch-size",type=int,default=64); p.add_argument("--threads",type=int,default=2); p.add_argument("--workers",type=int,default=0)
-    args=p.parse_args(); torch.set_num_threads(args.threads); device=torch.device("cpu")
+    p.add_argument("--device",choices=["auto","cpu","cuda"],default="auto",help="auto uses CUDA when available")
+    args=p.parse_args(); torch.set_num_threads(args.threads)
+    if args.device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("--device cuda was requested, but CUDA is unavailable.")
+    device=torch.device("cuda" if args.device == "auto" and torch.cuda.is_available() else ("cpu" if args.device == "auto" else args.device))
     state=torch.load(args.checkpoint,map_location="cpu",weights_only=False)
     model=PixrelEncoder(variant=state["variant"]).to(device); model.load_state_dict(state["model"])
     ds=_loader(args.data,args.batch_size,args.workers,False); loader=DataLoader(ds,batch_size=args.batch_size,shuffle=False,num_workers=args.workers)
-    result={**_accuracy(model,loader,device),"checkpoint":str(args.checkpoint),"seed":state["seed"],"variant":state["variant"],"device":"cpu"}
+    result={**_accuracy(model,loader,device),"checkpoint":str(args.checkpoint),"seed":state["seed"],"variant":state["variant"],"device":str(device),"device_name":torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"}
     Path(args.output).parent.mkdir(parents=True,exist_ok=True); Path(args.output).write_text(json.dumps(result,indent=2)); print(json.dumps(result))
