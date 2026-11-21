@@ -1,0 +1,3 @@
+[console_scripts]
+pixrel-evaluate = pixrel.cli:eval_main
+pixrel-train = pixrel.cli:train_main
