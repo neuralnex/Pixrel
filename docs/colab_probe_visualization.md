@@ -1,5 +1,7 @@
 # Colab: probe runs and visualizations
 
+The CIFAR-100 probe workflow and completed results are summarized in the [final report](final_report.md) and the detailed [CIFAR-100 SSL report](experiments/cifar100-ssl-seed17.md). The fire-image transfer outcome is separate and does not show a pretrained advantage.
+
 The training command is shell code. A normal Colab cell is Python, so a line like `RUNS=/content/...` raises `SyntaxError`. Use a `%%bash` cell for shell commands (the cell magic must be the first line), or prefix individual shell commands with `!`. Use a normal Python cell for plotting.
 
 ## 1. Run matched frozen probes
@@ -125,4 +127,4 @@ plt.show()
 print(f"Saved: {plot_path}")
 ```
 
-Treat these as exploratory validation results. If pretrained features do not beat random frozen features consistently across seeds, inspect the diagnostics and objective before scaling up. After selecting the protocol from validation results, evaluate each chosen checkpoint on the official test split once with `pixrel-evaluate`; record those results separately from validation.
+The documented CIFAR-100 probe and official test runs are complete: pretrained features beat random frozen features across all three seeds, with low absolute accuracy. Do not rerun or tune against that test split. For current project results and next evidence gates, see the [final report](final_report.md).

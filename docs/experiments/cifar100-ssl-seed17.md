@@ -1,5 +1,7 @@
 # CIFAR-100 self-supervised pilot — adaptive seed 17
 
+**Final status:** the planned official test evaluation is complete. This remains a narrow in-domain probe result, not evidence of broad transfer or foundation-model status. See the [consolidated final report](../final_report.md).
+
 ## Run record
 
 - Status: completed successfully, based on the pasted Colab log.
@@ -25,7 +27,7 @@ The total loss reached its minimum at epoch 9, then increased and settled around
 
 ## Interpretation and next gate
 
-This establishes that the 100-epoch pretraining job completed and reported its checkpoint path. It does not establish transfer quality. The next step is a matched frozen linear-probe comparison using the same train/validation split and classifier settings:
+At this stage of the experiment, the 100-epoch pretraining job had completed but transfer quality was not yet measured. The planned matched frozen linear-probe comparison was:
 
 1. Pretrained adaptive encoder, frozen; initialize from `encoder.pt`.
 2. Randomly initialized adaptive encoder, frozen; omit `--init-encoder`.
@@ -45,7 +47,7 @@ The three-seed frozen probes were completed on an NVIDIA L4 with the same per-se
 | 43 | 9.40% | 3.56% | +5.84 pp |
 | Mean ± sample SD | 9.01% ± 0.38 pp | 3.47% ± 0.28 pp | +5.54 pp |
 
-This is encouraging evidence that the pretraining learned features that are more linearly useful than this encoder's random features on CIFAR-100. However, 9.01% top-1 validation accuracy remains low for a 100-class task, and this comparison alone does not show competitive representations or transfer beyond CIFAR-100. Treat it as an early positive signal, not a foundation-model result. The next step is one test evaluation for each already selected `best.pt`, then a supervised end-to-end fine-tuning comparison and a separate dense downstream task. Do not change the recipe based on the test results.
+At validation time, pretrained features were more linearly useful than this encoder's random features on CIFAR-100. However, 9.01% top-1 validation accuracy remains low for a 100-class task, and this comparison alone does not show competitive representations or transfer beyond CIFAR-100. Treat it as an early positive signal, not a foundation-model result. The official test evaluation is now recorded below. Do not change this recipe based on the already-used test results.
 
 ## Official test evaluation
 

@@ -1,5 +1,7 @@
 # Colab training stages: masked pixels to downstream task
 
+**Completed run status:** the fire-image workflow in this guide was run through the 20-epoch pretraining stage and the three-seed transfer/test comparison. Pretrained averaged 94.08% test accuracy versus 95.83% for scratch; see the [final report](final_report.md) before reusing the sample commands.
+
 This workflow validates the pipeline, trains on permitted images, watches pixel and feature learning, and compares downstream classification with a same-architecture scratch baseline. RGB reconstruction is a visible training objective, not proof of general vision ability. The downstream task measures transfer.
 
 ## Stage 0 — Update Colab

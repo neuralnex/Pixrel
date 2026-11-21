@@ -4,6 +4,8 @@ PIXREL (Pixel Relationship Learning) is an experimental computer vision research
 
 No superiority or foundation-model claims are made. Reported metrics are limited to the specific datasets, protocols, and runs documented in the experiment reports.
 
+The consolidated current-stage outcome is in the [PIXREL final research report](docs/final_report.md), including the CIFAR-100 results, fire-image pretraining diagnostics, held-out transfer comparison, and release status.
+
 ## Quick start
 
 Use Python 3.10+ and install the package and dependencies:
@@ -73,6 +75,12 @@ pixrel-transfer-evaluate --checkpoint /content/drive/MyDrive/pixrel-runs/task-fi
 Choose image collections whose terms permit this use, and record their source, version, filtering, and split. The new ImageFolder and transfer paths are implementation scaffolding; validate them with a short run before committing GPU time to a long experiment.
 
 See [docs/foundation_model_plan.md](docs/foundation_model_plan.md) before interpreting this pilot or scaling to a larger image corpus.
+
+### Hugging Face Hub and community fine-tuning
+
+The first fire-image transfer comparison is documented in [docs/experiments/fire-transfer-v1.md](docs/experiments/fire-transfer-v1.md). On this small test split, the scratch baseline averaged 95.83% accuracy and pretrained PIXREL averaged 94.08% across three seeds; this checkpoint is shared as an experimental starting point, not a demonstrated improvement. The model card is at [model_cards/fire-detection-seed17/README.md](model_cards/fire-detection-seed17/README.md).
+
+Install the optional Hub client with `pip install -e '.[hub]'`. After pushing this repository update to GitHub, use the staged instructions in [docs/huggingface/publish.md](docs/huggingface/publish.md) to authenticate and upload the pretrained encoder bundle from Colab. Contributions and replication details are in [CONTRIBUTING.md](CONTRIBUTING.md). No model license is set until the source dataset rights are verified.
 
 For Colab-ready matched probe commands and plots of pretraining/probe results, see [docs/colab_probe_visualization.md](docs/colab_probe_visualization.md). In Colab, run shell commands in a `%%bash` cell and plotting snippets in normal Python cells.
 

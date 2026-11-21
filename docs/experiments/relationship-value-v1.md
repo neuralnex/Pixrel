@@ -1,5 +1,7 @@
 # Relationship Value Benchmark V1 — CIFAR-100
 
+This CIFAR benchmark is one component of the current evidence snapshot. The later fire-image transfer experiment and consolidated conclusions are in the [final report](../final_report.md).
+
 ## Status
 
 **Exploratory three-seed run completed; primary hypothesis not established.** The adaptive relationship encoder exceeded uniform fixed aggregation, but the convolution control scored higher. Capacity and training-duration confounds mean this is not yet a fair claim about the relationship operator itself.
