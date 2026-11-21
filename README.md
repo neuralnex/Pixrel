@@ -37,13 +37,13 @@ The first three-seed CIFAR-100 results and their limitations are documented in [
 
 ## Self-supervised learning pilot
 
-The initial pretraining command uses unlabeled images from the 45,000-image CIFAR-100 training subset. It predicts clean teacher features from masked student inputs at H0, at the fused spatial output, and at the global H3 embedding. CIFAR-100 is only a pipeline and representation-learning pilot, not a foundation-model corpus.
+The initial pretraining command uses unlabeled images from the 45,000-image CIFAR-100 training subset. It predicts clean teacher features from masked student inputs at H0, at the fused spatial output, and at the global H3 embedding. RGB heads at H0–H3 also predict masked input pixels; the run reports masked RGB loss, MAE, and PSNR. CIFAR-100 is only a pipeline and representation-learning pilot, not a foundation-model corpus.
 
 ```bash
 pixrel-pretrain --variant adaptive --seed 17 --epochs 100 --batch-size 128 --device cuda --data ./data --output ./outputs/pretrain-cifar100
 ```
 
-The encoder weights are written to `encoder.pt`; `last.pt` includes teacher, predictors, optimizer, scheduler, and RNG state for resume. After pretraining, run a frozen linear probe:
+The encoder weights are written to `encoder.pt`, and `encoder_bundle.pt` adds variant, input resolution, and normalization metadata. `last.pt` includes teacher, predictors, optimizer, scheduler, and RNG state for resume. After pretraining, run a frozen linear probe:
 
 ```bash
 pixrel-train --variant adaptive --seed 17 --epochs 20 --batch-size 64 --device cuda --init-encoder ./outputs/pretrain-cifar100/encoder.pt --freeze-encoder --data ./data --output ./outputs/probe-cifar100-seed17
@@ -51,4 +51,29 @@ pixrel-train --variant adaptive --seed 17 --epochs 20 --batch-size 64 --device c
 
 For a random-frozen-feature control, use the same command without `--init-encoder` and save to a separate output directory. For end-to-end fine-tuning, pass `--init-encoder` and omit `--freeze-encoder`.
 
+### ImageFolder pretraining and transfer
+
+For broader unlabeled image collections, arrange files as `data-root/class-name/image.jpg` and run `pixrel-pretrain --dataset imagefolder`. Class names and labels are ignored during pretraining. The output includes `encoder_bundle.pt`, which stores encoder weights, variant, input size, and normalization. CIFAR-100 remains the default dataset for reproducing the pilot above.
+
+Example GPU run in Colab (start with a small batch; larger image sizes use more memory):
+
+```bash
+pixrel-pretrain --dataset imagefolder --variant adaptive --seed 17 --epochs 100 --image-size 128 --patch-size 4 --batch-size 16 --device cuda --data /content/unlabeled-images --output /content/drive/MyDrive/pixrel-runs/pixrel-imagefolder-128
+```
+
+Pretraining automatically saves `visualizations/epoch_*.png`, `feature_path_progress.gif`, and `learning_curves.png`. The snapshots show the fixed input and mask, H0–H3 RGB reconstructions and masked-pixel error, teacher/student feature responses, each encoder stage, fused spatial maps, and learned 3×3 neighbor weights at the center pixel. The curves include masked-pixel MAE and PSNR. Feature maps are normalized separately to reveal spatial patterns; their colors are not calibrated activation magnitudes, and local weights are diagnostics rather than causal explanations.
+
+Transfer the resulting encoder to a labeled ImageFolder classification task. Use either `--freeze-encoder` for a linear probe or omit it to fine-tune the encoder. The data root must contain one subdirectory per class; pass a separate validation root with `--val-dir`, or the CLI creates a seeded validation split.
+
+```bash
+pixrel-transfer --checkpoint /content/drive/MyDrive/pixrel-runs/pixrel-imagefolder-128/encoder_bundle.pt --train-dir /content/task/train --val-dir /content/task/val --epochs 30 --batch-size 32 --device cuda --output /content/drive/MyDrive/pixrel-runs/task-finetune
+pixrel-transfer-evaluate --checkpoint /content/drive/MyDrive/pixrel-runs/task-finetune/best.pt --data-dir /content/task/test --device cuda --output /content/drive/MyDrive/pixrel-runs/task-finetune/test.json
+```
+
+Choose image collections whose terms permit this use, and record their source, version, filtering, and split. The new ImageFolder and transfer paths are implementation scaffolding; validate them with a short run before committing GPU time to a long experiment.
+
 See [docs/foundation_model_plan.md](docs/foundation_model_plan.md) before interpreting this pilot or scaling to a larger image corpus.
+
+For Colab-ready matched probe commands and plots of pretraining/probe results, see [docs/colab_probe_visualization.md](docs/colab_probe_visualization.md). In Colab, run shell commands in a `%%bash` cell and plotting snippets in normal Python cells.
+
+For the complete staged real-data workflow with a live Colab snapshot monitor and scratch-versus-pretrained transfer comparison, see [docs/colab_training_stages.md](docs/colab_training_stages.md).
