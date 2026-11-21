@@ -10,14 +10,19 @@ Adaptive local pixel relationships may improve representation quality over compa
 
 ## Initial scope
 
-Implement a transparent PixelStem, 3×3 relationship engine, four-stage hierarchy, multiscale feature fusion, global H3 embedding, classification head, and three benchmark variants. Establish CIFAR-100 training/evaluation and reproducibility before adding self-supervised pretraining or evidence-preserving refinements.
+Implement a transparent PixelStem, 3×3 relationship engine, four-stage hierarchy, multiscale feature fusion, global H3 embedding, classification head, and controlled variants. The CIFAR-100 V1 comparison is now recorded, but its fair-comparison gate remains open. A CIFAR-scale self-supervised pilot exists for engineering and representation analysis; do not scale it or add speculative architectural refinements before the next evidence gates.
 
 ## Gates
 
 1. Engineering: tensor contracts, boundary masking, gradients, deterministic forward behavior.
-2. Relationship benchmark: three controls × predetermined seeds on CIFAR-100.
-3. Ablation: hierarchy and high-resolution fusion.
-4. Real-data self-supervised pretraining and transfer.
-5. Fine-detail tasks (for example CUB-200 and Oxford-IIIT Pet), after dataset licensing and protocol review.
+2. Relationship benchmark: three controls × predetermined seeds on CIFAR-100. **Exploratory V1 results are recorded; fair-comparison gate remains open** because the convolution control has more parameters, the run is only 20 epochs, and compute matching has not been measured.
+3. Dense-path engineering and ablation: ensure the training objective uses the fused spatial representation, then evaluate hierarchy and high-resolution fusion.
+4. Fine-detail tasks (for example CUB-200 and Oxford-IIIT Pet), after dataset licensing and protocol review.
+5. Self-supervised pretraining pilot: code now exists for masked local/fused/global target prediction with an EMA teacher; it is unvalidated and CIFAR-100-scale only. Run diagnostics and linear probes before advancing.
+6. Broader self-supervised pretraining and transfer, only after a defensible encoder, downstream evaluation protocol, and licensed data source exist.
 
-Code existence is not evidence that a gate has passed. The current implementation is untrained and is not a pretrained or foundation model.
+Code existence is not evidence that a gate has passed. PIXREL has now been trained on CIFAR-100 for the exploratory runs recorded in the benchmark report, but those task-specific checkpoints are not a self-supervised pretrained encoder or a foundation model. The checkpoints and full run archives are not currently included in this repository.
+
+See [Relationship Value Benchmark V1](experiments/relationship-value-v1.md) for observed results, interpretation, documentation gaps, prior-art notes, and the ordered next steps.
+
+See the [foundation-model research plan](foundation_model_plan.md) for the pilot objective, commands, evaluation gates, and stop/go criteria.

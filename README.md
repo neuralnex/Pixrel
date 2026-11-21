@@ -2,7 +2,7 @@
 
 PIXREL (Pixel Relationship Learning) is an experimental computer vision research project. This repository starts with a reproducible implementation of a pixel relationship encoder and the controls needed to test whether adaptive local relationships add value over convolution or fixed neighborhood aggregation. Training can run on CPU or CUDA GPUs.
 
-No performance or foundation-model claims are made. A model becomes meaningful only after real-data training and controlled evaluation.
+No superiority or foundation-model claims are made. Reported metrics are limited to the specific datasets, protocols, and runs documented in the experiment reports.
 
 ## Quick start
 
@@ -32,3 +32,23 @@ The first benchmark compares the three variants on CIFAR-100 using identical dat
 The controls share a hierarchical encoder skeleton. `adaptive` learns content-dependent neighbor weights, `fixed` uses uniform valid-neighbor weights, and `conv` uses a local convolution block. These are initial controls, not guaranteed parameter/FLOP-matched baselines. Record parameter counts and computational costs before interpreting differences.
 
 See [docs/architecture.md](docs/architecture.md), [docs/benchmark_protocol.md](docs/benchmark_protocol.md), and [docs/research_blueprint.md](docs/research_blueprint.md).
+
+The first three-seed CIFAR-100 results and their limitations are documented in [docs/experiments/relationship-value-v1.md](docs/experiments/relationship-value-v1.md). They are exploratory classification results, not evidence that PIXREL is a foundation model.
+
+## Self-supervised learning pilot
+
+The initial pretraining command uses unlabeled images from the 45,000-image CIFAR-100 training subset. It predicts clean teacher features from masked student inputs at H0, at the fused spatial output, and at the global H3 embedding. CIFAR-100 is only a pipeline and representation-learning pilot, not a foundation-model corpus.
+
+```bash
+pixrel-pretrain --variant adaptive --seed 17 --epochs 100 --batch-size 128 --device cuda --data ./data --output ./outputs/pretrain-cifar100
+```
+
+The encoder weights are written to `encoder.pt`; `last.pt` includes teacher, predictors, optimizer, scheduler, and RNG state for resume. After pretraining, run a frozen linear probe:
+
+```bash
+pixrel-train --variant adaptive --seed 17 --epochs 20 --batch-size 64 --device cuda --init-encoder ./outputs/pretrain-cifar100/encoder.pt --freeze-encoder --data ./data --output ./outputs/probe-cifar100-seed17
+```
+
+For a random-frozen-feature control, use the same command without `--init-encoder` and save to a separate output directory. For end-to-end fine-tuning, pass `--init-encoder` and omit `--freeze-encoder`.
+
+See [docs/foundation_model_plan.md](docs/foundation_model_plan.md) before interpreting this pilot or scaling to a larger image corpus.

@@ -11,7 +11,7 @@ from torch.nn import functional as F
 class EncoderOutput:
     embedding: torch.Tensor
     stages: tuple[torch.Tensor, ...]
-    spatial: torch.Tensor
+    spatial: torch.Tensor | None
     relationships: torch.Tensor | None = None
 
 
@@ -104,7 +104,8 @@ class PixrelEncoder(nn.Module):
         self.embedding_dim = widths[-1]
         self.spatial_dim = widths[0] * 2
 
-    def forward(self, x: torch.Tensor, return_relationships: bool = False, classify: bool = False):
+    def forward(self, x: torch.Tensor, return_relationships: bool = False, classify: bool = False,
+                return_spatial: bool = True):
         y = self.stem(x)
         stages, rel = [], None
         for i, block in enumerate(self.blocks):
@@ -116,9 +117,13 @@ class PixrelEncoder(nn.Module):
             if i < len(self.downs):
                 y = self.downs[i](y)
         target_size = stages[0].shape[-2:] if self.high_resolution_fusion else stages[1].shape[-2:]
-        features = stages if self.high_resolution_fusion else stages[1:]
-        aligned = [f if f.shape[-2:] == target_size else F.interpolate(f, size=target_size, mode="bilinear", align_corners=False) for f in features]
-        spatial = self.fuse(torch.cat(aligned, dim=1))
         embedding = F.adaptive_avg_pool2d(stages[-1], 1).flatten(1)
+        if classify:
+            return self.classifier(embedding)
+        spatial = None
+        if return_spatial:
+            features = stages if self.high_resolution_fusion else stages[1:]
+            aligned = [f if f.shape[-2:] == target_size else F.interpolate(f, size=target_size, mode="bilinear", align_corners=False) for f in features]
+            spatial = self.fuse(torch.cat(aligned, dim=1))
         result = EncoderOutput(embedding=embedding, stages=tuple(stages), spatial=spatial, relationships=rel)
-        return self.classifier(embedding) if classify else result
+        return result

@@ -19,3 +19,5 @@ The scripts accept `--device cpu`, `--device cuda`, or `--device auto`; auto sel
 ## Current limitations
 
 This initial benchmark is classification only. It does not establish fine-detail preservation, transfer, pretraining quality, or foundation-model status. The controls are not yet matched for MACs. CIFAR-100 is a first controlled benchmark, not a sufficient generalization study.
+
+The exploratory CIFAR-100 results and follow-up plan are recorded in [Relationship Value Benchmark V1](experiments/relationship-value-v1.md). Treat that report as a three-seed pilot: the convolution control leads, its parameter count is larger, and the classifier does not train the fused dense feature branch.

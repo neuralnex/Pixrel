@@ -51,6 +51,8 @@ def train_main():
     p.add_argument("--variant",choices=["adaptive","fixed","conv"],default="adaptive"); p.add_argument("--seed",type=int,default=17)
     p.add_argument("--epochs",type=int,default=20); p.add_argument("--batch-size",type=int,default=16); p.add_argument("--threads",type=int,default=2)
     p.add_argument("--device",choices=["auto","cpu","cuda"],default="auto",help="auto uses CUDA when available")
+    p.add_argument("--init-encoder",help="optional PIXREL encoder state dict to initialize from")
+    p.add_argument("--freeze-encoder",action="store_true",help="train only the classifier; without --init-encoder, probe random frozen features")
     p.add_argument("--workers",type=int,default=0); p.add_argument("--data",default="./data"); p.add_argument("--output",default="./outputs/run")
     p.add_argument("--lr",type=float,default=.1); p.add_argument("--weight-decay",type=float,default=5e-4)
     p.add_argument("--limit-train-batches",type=int); p.add_argument("--limit-val-batches",type=int)
@@ -68,7 +70,17 @@ def _train(args):
     device_name = torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"
     print(f"Data ready: {len(train.dataset)} train / {len(val.dataset)} validation examples; device={device_name}", flush=True)
     model=PixrelEncoder(variant=args.variant).to(device)
-    optimizer=torch.optim.SGD(model.parameters(),lr=args.lr,momentum=.9,weight_decay=args.weight_decay)
+    if args.init_encoder:
+        if args.freeze_encoder is False:
+            print("Initializing encoder weights; encoder will be fine-tuned.", flush=True)
+        encoder_state=torch.load(args.init_encoder,map_location="cpu",weights_only=False)
+        model.load_state_dict(encoder_state,strict=True)
+    if args.freeze_encoder:
+        for name, parameter in model.named_parameters():
+            parameter.requires_grad_(name.startswith("classifier."))
+        source = "initialized encoder" if args.init_encoder else "randomly initialized encoder"
+        print(f"Encoder frozen ({source}); training classifier only.", flush=True)
+    optimizer=torch.optim.SGD((p for p in model.parameters() if p.requires_grad),lr=args.lr,momentum=.9,weight_decay=args.weight_decay)
     scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,args.epochs)
     output=Path(args.output); output.mkdir(parents=True,exist_ok=True)
     best=float("-inf"); history=[]; start=time.perf_counter()

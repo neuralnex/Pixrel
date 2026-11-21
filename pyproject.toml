@@ -12,6 +12,7 @@ dependencies = ["torch>=2.1", "torchvision>=0.16", "numpy>=1.24"]
 [project.scripts]
 pixrel-train = "pixrel.cli:train_main"
 pixrel-evaluate = "pixrel.cli:eval_main"
+pixrel-pretrain = "pixrel.pretraining.trainer:pretrain_main"
 
 [tool.setuptools.packages.find]
 include = ["pixrel*"]
