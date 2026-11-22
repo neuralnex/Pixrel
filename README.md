@@ -87,6 +87,8 @@ pixrel-segment-evaluate --checkpoint ./outputs/segmentation/best.pt \
 
 This dense-task adapter has synthetic CPU tests, but it has not yet been evaluated on a real mask-labeled dataset. The existing fire/non-fire image dataset has class labels, not pixel masks, and cannot validate segmentation. See [the segmentation guide](docs/segmentation.md) and [final report](docs/final_report.md).
 
+To create reviewed binary flame masks for a 200-image pilot before training, follow the [Colab fire-mask annotation guide](docs/colab_fire_mask_annotation.md). It preserves the existing split, generates background masks for non-fire images, and interactively outlines visible flame regions in fire images.
+
 Choose image collections whose terms permit this use, and record their source, version, filtering, and split. The new ImageFolder and transfer paths are implementation scaffolding; validate them with a short run before committing GPU time to a long experiment.
 
 See [docs/foundation_model_plan.md](docs/foundation_model_plan.md) before interpreting this pilot or scaling to a larger image corpus.

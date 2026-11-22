@@ -51,6 +51,8 @@ pixrel-segment --scratch --variant adaptive --image-size 128 \
 
 The adapter has synthetic CPU tests for paired-mask loading, output resolution, gradients through the fused encoder branch, confusion-matrix metrics, and a training epoch. It has not been run on real segmentation annotations. The fire/non-fire image dataset used in the current transfer report has only image-level labels; it cannot serve as a segmentation benchmark. Real-data mIoU and scratch-versus-pretrained results are still required before claiming dense transfer or deployment readiness.
 
+The [Colab fire-mask annotation guide](colab_fire_mask_annotation.md) creates a reviewed binary flame dataset from 200 images before training. It is an annotation workflow, not a source of already-created masks.
+
 ## Colab setup
 
 After committing and pushing this code to GitHub, update the existing Colab checkout:

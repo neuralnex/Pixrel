@@ -7,6 +7,8 @@
 
 **Validation status:** four CPU tests pass, including a synthetic one-epoch train/save/reload check. This validates code paths and tensor/checkpoint contracts only; no real segmentation dataset has been evaluated. Deployment remains gated on real-data validation and dataset-rights review.
 
+**Annotation workflow:** a Colab guide now prepares a balanced 200-image subset from the existing fire split, creates all-background masks for the non-fire class, and interactively outlines visible flame regions in fire images. These human-reviewed masks must be completed and checked before the real segmentation run; none have been supplied yet.
+
 ## Executive summary
 
 PIXREL is an experimental, pixel-relationship visual encoder with self-supervised masked feature prediction and masked RGB reconstruction. The current evidence shows limited in-domain representation utility on CIFAR-100 frozen probes. On the small fire-image experiment, however, the pretrained encoder did **not** improve held-out classification over the same architecture trained from scratch: mean accuracy was 94.08% pretrained versus 95.83% scratch across three seeds. The project has not established broad transfer, a segmentation capability, or foundation-model status.
