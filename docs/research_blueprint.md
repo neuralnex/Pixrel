@@ -16,7 +16,7 @@ Implement a transparent PixelStem, 3×3 relationship engine, four-stage hierarch
 
 1. Engineering: tensor contracts, boundary masking, gradients, deterministic forward behavior.
 2. Relationship benchmark: three controls × predetermined seeds on CIFAR-100. **Exploratory V1 results are recorded; fair-comparison gate remains open** because the convolution control has more parameters, the run is only 20 epochs, and compute matching has not been measured.
-3. Dense-path engineering and ablation: ensure the training objective uses the fused spatial representation, then evaluate hierarchy and high-resolution fusion.
+3. Dense-path engineering and ablation: a segmentation decoder now consumes and trains the fused spatial representation; synthetic CPU tests pass. Real mask-labeled evaluation and hierarchy/high-resolution-fusion ablations remain open.
 4. Fine-detail tasks (for example CUB-200 and Oxford-IIIT Pet), after dataset licensing and protocol review.
 5. Self-supervised pretraining pilot: CIFAR-100 and a small fire-image train split have completed masked local/fused/global target prediction with an EMA teacher and RGB reconstruction. CIFAR-100 pretrained frozen probes beat random frozen probes in-domain; the fire transfer comparison did not beat scratch.
 6. Broader self-supervised pretraining and transfer remain gated on better controlled evidence, documented dataset rights, and successful evaluation on independent datasets/tasks.

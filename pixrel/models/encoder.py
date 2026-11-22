@@ -88,21 +88,22 @@ class PixrelEncoder(nn.Module):
         if variant not in {"adaptive", "fixed", "conv"}:
             raise ValueError("variant must be adaptive, fixed, or conv")
         self.variant = variant
+        self.widths = tuple(widths)
         self.high_resolution_fusion = high_resolution_fusion
         self.stem = PixelStem(widths[0])
         blocks, downs = [], []
-        for i, width in enumerate(widths):
+        for i, width in enumerate(self.widths):
             block = ConvBlock(width) if variant == "conv" else PixelRelationshipBlock(width, variant)
             blocks.append(block)
-            if i < len(widths) - 1:
-                downs.append(nn.Sequential(nn.Conv2d(width, widths[i + 1], 3, stride=2, padding=1), nn.GELU()))
+            if i < len(self.widths) - 1:
+                downs.append(nn.Sequential(nn.Conv2d(width, self.widths[i + 1], 3, stride=2, padding=1), nn.GELU()))
         self.blocks = nn.ModuleList(blocks)
         self.downs = nn.ModuleList(downs)
-        fusion_width = sum(widths if high_resolution_fusion else widths[1:])
-        self.fuse = nn.Sequential(nn.Conv2d(fusion_width, widths[0] * 2, 1), nn.GELU(), nn.Conv2d(widths[0] * 2, widths[0] * 2, 3, padding=1))
-        self.classifier = nn.Linear(widths[-1], num_classes)
-        self.embedding_dim = widths[-1]
-        self.spatial_dim = widths[0] * 2
+        fusion_width = sum(self.widths if high_resolution_fusion else self.widths[1:])
+        self.fuse = nn.Sequential(nn.Conv2d(fusion_width, self.widths[0] * 2, 1), nn.GELU(), nn.Conv2d(self.widths[0] * 2, self.widths[0] * 2, 3, padding=1))
+        self.classifier = nn.Linear(self.widths[-1], num_classes)
+        self.embedding_dim = self.widths[-1]
+        self.spatial_dim = self.widths[0] * 2
 
     def forward(self, x: torch.Tensor, return_relationships: bool = False, classify: bool = False,
                 return_spatial: bool = True):

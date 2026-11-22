@@ -72,6 +72,21 @@ pixrel-transfer --checkpoint /content/drive/MyDrive/pixrel-runs/pixrel-imagefold
 pixrel-transfer-evaluate --checkpoint /content/drive/MyDrive/pixrel-runs/task-finetune/best.pt --data-dir /content/task/test --device cuda --output /content/drive/MyDrive/pixrel-runs/task-finetune/test.json
 ```
 
+For dense prediction, `pixrel-segment` trains a segmentation decoder on the encoder's fused spatial representation. Images and single-channel class-ID masks live in parallel trees with matching relative names (for example `train/images/case1.jpg` and `train/masks/case1.png`). Use `255` for ignored pixels. It selects checkpoints by validation mean IoU and reports per-class IoU and a confusion matrix. The adapter passes synthetic CPU tests, but it has not been evaluated on real masks; the fire/non-fire dataset has image-level labels only:
+
+```bash
+pixrel-segment --checkpoint /path/to/encoder_bundle.pt \
+  --train-images /data/train/images --train-masks /data/train/masks \
+  --val-images /data/val/images --val-masks /data/val/masks \
+  --num-classes 3 --class-names background object boundary \
+  --epochs 30 --batch-size 8 --device auto --output ./outputs/segmentation
+pixrel-segment-evaluate --checkpoint ./outputs/segmentation/best.pt \
+  --images-dir /data/test/images --masks-dir /data/test/masks \
+  --device auto --output ./outputs/segmentation/test.json
+```
+
+This dense-task adapter has synthetic CPU tests, but it has not yet been evaluated on a real mask-labeled dataset. The existing fire/non-fire image dataset has class labels, not pixel masks, and cannot validate segmentation. See [the segmentation guide](docs/segmentation.md) and [final report](docs/final_report.md).
+
 Choose image collections whose terms permit this use, and record their source, version, filtering, and split. The new ImageFolder and transfer paths are implementation scaffolding; validate them with a short run before committing GPU time to a long experiment.
 
 See [docs/foundation_model_plan.md](docs/foundation_model_plan.md) before interpreting this pilot or scaling to a larger image corpus.

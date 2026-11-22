@@ -3,6 +3,10 @@
 **Report date:** 2026-11-22  
 **Scope:** CIFAR-100 relationship benchmark, CIFAR-100 self-supervised probe, and fire/non-fire ImageFolder pretraining/transfer runs reported from Colab. This is the final report for the current experimental stage, not a claim that the research program or model is complete.
 
+**Implementation update:** a segmentation adapter and CLI have since been added to train the fused spatial pathway. Synthetic CPU tests pass; real mask-labeled evaluation remains outstanding. See [segmentation guide](segmentation.md).
+
+**Validation status:** four CPU tests pass, including a synthetic one-epoch train/save/reload check. This validates code paths and tensor/checkpoint contracts only; no real segmentation dataset has been evaluated. Deployment remains gated on real-data validation and dataset-rights review.
+
 ## Executive summary
 
 PIXREL is an experimental, pixel-relationship visual encoder with self-supervised masked feature prediction and masked RGB reconstruction. The current evidence shows limited in-domain representation utility on CIFAR-100 frozen probes. On the small fire-image experiment, however, the pretrained encoder did **not** improve held-out classification over the same architecture trained from scratch: mean accuracy was 94.08% pretrained versus 95.83% scratch across three seeds. The project has not established broad transfer, a segmentation capability, or foundation-model status.
@@ -50,4 +54,4 @@ Not supported: superiority over convolution, broad cross-domain transfer, reliab
 
 The model card and upload workflow are in [the Hugging Face release guide](huggingface/publish.md). Upload is not yet confirmed. Verify dataset and derived-weight rights, then select a license before claiming that others may redistribute or reuse the weights.
 
-Prioritize documenting dataset provenance and class balance; add class-wise metrics and uncertainty; check duplicates and acquisition-level leakage; reproduce on an external fire dataset; and test a second task, including a dense spatial-label task. Continue comparing pretrained against scratch and relevant matched baselines. Treat the current Hub checkpoint as an experimental contribution point only.
+Prioritize documenting dataset provenance and class balance; add class-wise metrics and uncertainty; check duplicates and acquisition-level leakage; reproduce on an external fire dataset; and evaluate the new segmentation adapter on a permitted mask-labeled task. Continue comparing pretrained against scratch and relevant matched baselines. Treat the current Hub checkpoint as an experimental contribution point only.

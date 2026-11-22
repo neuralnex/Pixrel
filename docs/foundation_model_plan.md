@@ -38,7 +38,7 @@ The three-seed fire transfer comparison is also complete. Pretraining averaged 9
 
 ### FM-3 — Dense and cross-dataset transfer
 
-**Status: not started.** No dense prediction or external dataset has been evaluated.
+**Status: adapter implemented; real evaluation not started.** `PixrelSegmenter` now trains on fused spatial features and `pixrel-segment` reports mean/per-class IoU. Synthetic CPU checks pass, but no dense prediction or external dataset has been evaluated. The existing fire classification images do not have pixel masks. See [the segmentation guide](segmentation.md).
 
 Evaluate a spatial-label task (such as pet segmentation) with mIoU and boundary metrics and a separate fine-grained classification task. Compare scratch, PIXREL-pretrained, and appropriate published/pretrained reference models. Document preprocessing, license, and split provenance.
 

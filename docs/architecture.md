@@ -14,3 +14,5 @@ The encoder returns `EncoderOutput` with:
 This is a first reference implementation. It prioritizes transparent semantics over speed; its per-neighbor tensor operations may be costly on CPU. Optimize only after profiling and preserve a reference-equivalence check when doing so.
 
 The current experimental outcome and scope limits are summarized in the [final report](final_report.md). In particular, classification results do not validate the fused dense path, and visualized relationship weights are not causal explanations.
+
+The dense adapter in [`pixrel/models/segmentation.py`](../pixrel/models/segmentation.py) now attaches a trainable decoder to `EncoderOutput.spatial`; see the [segmentation guide](segmentation.md) for its data contract and current evidence status.

@@ -18,6 +18,8 @@ pixrel-evaluate = "pixrel.cli:eval_main"
 pixrel-pretrain = "pixrel.pretraining.trainer:pretrain_main"
 pixrel-transfer = "pixrel.transfer:train_main"
 pixrel-transfer-evaluate = "pixrel.transfer:evaluate_main"
+pixrel-segment = "pixrel.segmentation:train_main"
+pixrel-segment-evaluate = "pixrel.segmentation:evaluate_main"
 pixrel-hub-upload = "pixrel.hub:upload_main"
 
 [tool.setuptools.packages.find]
