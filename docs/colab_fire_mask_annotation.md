@@ -60,30 +60,27 @@ for split, count in (("train", 70), ("val", 15), ("test", 15)):
 print("Subset and non-fire masks created:", destination)
 ```
 
-## 2. Install and enable interactive polygon annotation
+## 2. Install and enable a Colab-native drawing canvas
 
-Run this in a Colab cell. It uses an interactive Matplotlib canvas; if the canvas does not become clickable after installation, restart the Colab runtime and rerun the setup cell.
+Use `ipycanvas` for drag painting. This avoids switching Matplotlib backends, which can fail in Colab with `ValueError: Key backend ... ipympl.backend_nbagg`. Run setup once; if Colab reports that the widget model is unavailable, restart the runtime and rerun this cell.
 
 ```python
-%pip -q install ipympl
+%pip -q install ipycanvas
 from google.colab import output
 output.enable_custom_widget_manager()
-%matplotlib widget
 ```
 
-## 3. Outline flames and save masks
+## 3. Paint flame pixels and save masks
 
-In the cell below, each left-click adds a polygon vertex; double-click the final vertex to finish that flame region. Draw separate polygons for disconnected flame regions. Click **Save mask + next** when all visible flames in the current image are outlined. The rest of the mask remains background (`0`). Images without a visible flame should be skipped for review, not saved as an all-background fire mask.
+In the cell below, choose **Paint flame**, then hold the left mouse button and drag over visible flames. Choose **Erase** to correct mistakes; adjust the brush size as needed. Click **Save flame mask + next** when finished. If the image contains no visible flame, explicitly click **Save no-flame mask + next**. Skipped images remain pending for later review. Everything not painted is background (`0`).
 
 ```python
 from pathlib import Path
 import numpy as np
-import matplotlib.pyplot as plt
 import ipywidgets as widgets
 from IPython.display import display
-from matplotlib.widgets import PolygonSelector
-from matplotlib.patches import Polygon
 from PIL import Image, ImageDraw
+from ipycanvas import MultiCanvas, hold_canvas
 
 ROOT = Path("/content/drive/MyDrive/pixrel-fire-seg-200")
 # Build exact image->mask paths, independent of Colab's mount path depth.
@@ -97,75 +94,150 @@ for split in ("train", "val", "test"):
 if not pending:
     print("All fire images already have masks.")
 else:
-    state = {"index": 0, "polygons": [], "selector": None, "image": None}
-    fig, ax = plt.subplots(figsize=(8, 7))
+    state = {"index": 0, "image": None, "mask": None, "painting": False,
+             "previous": None, "canvas_size": None}
     status = widgets.HTML()
-    save_button = widgets.Button(description="Save mask + next", button_style="success")
+    mode = widgets.ToggleButtons(
+        options=[("Paint flame", 1), ("Erase", 0)], value=1
+    )
+    brush_size = widgets.IntSlider(value=8, min=1, max=32, step=1, description="Brush")
+    save_button = widgets.Button(description="Save flame mask + next", button_style="success")
+    no_flame_button = widgets.Button(description="Save no-flame mask + next")
     skip_button = widgets.Button(description="Skip for review")
+    # Layer 0 shows the source image; layer 1 shows translucent flame pixels.
+    canvas = MultiCanvas(2, width=640, height=480, sync_image_data=True)
+    canvas.layout.width = "min(100%, 640px)"
+    image_layer, mask_layer = canvas[0], canvas[1]
+
+    def paint_segment(start, end, value):
+        if start is None:
+            return
+        x0, y0 = start
+        x1, y1 = end
+        radius = int(brush_size.value)
+        color = "rgba(255, 35, 10, 0.62)" if value else "rgba(0, 0, 0, 0)"
+        with hold_canvas(mask_layer):
+            if value == 0:
+                # Clear painted pixels beneath the eraser using the canvas API.
+                mask_layer.global_composite_operation = "destination-out"
+            else:
+                mask_layer.global_composite_operation = "source-over"
+            mask_layer.stroke_style = color
+            mask_layer.fill_style = color
+            mask_layer.line_width = 2 * radius
+            mask_layer.line_cap = "round"
+            mask_layer.line_join = "round"
+            mask_layer.begin_path()
+            mask_layer.move_to(x0, y0)
+            mask_layer.line_to(x1, y1)
+            mask_layer.stroke()
+            mask_layer.begin_path()
+            mask_layer.arc(x1, y1, radius, 0, 2 * np.pi)
+            mask_layer.fill()
+            mask_layer.global_composite_operation = "source-over"
+
+        # Store the same brush path in the binary mask at original image resolution.
+        scale_x = state["mask"].shape[1] / state["canvas_size"][0]
+        scale_y = state["mask"].shape[0] / state["canvas_size"][1]
+        draw = ImageDraw.Draw(state["mask"])
+        xy = (round(x0 * scale_x), round(y0 * scale_y),
+              round(x1 * scale_x), round(y1 * scale_y))
+        width = max(1, round(2 * radius * (scale_x + scale_y) / 2))
+        if value:
+            draw.line(xy, fill=1, width=width)
+            r = max(1, width // 2)
+            ex, ey = xy[2], xy[3]
+            draw.ellipse((ex-r, ey-r, ex+r, ey+r), fill=1)
+        else:
+            # Use a separate binary draw operation below for erasing.
+            draw.line(xy, fill=0, width=width)
+            r = max(1, width // 2)
+            ex, ey = xy[2], xy[3]
+            draw.ellipse((ex-r, ey-r, ex+r, ey+r), fill=0)
 
     def show_current():
-        if state["selector"] is not None:
-            state["selector"].disconnect_events()
-        split, image_path, mask_path = pending[state["index"]]
-        state["image"] = np.asarray(Image.open(image_path).convert("RGB"))
-        state["polygons"] = []
-        ax.clear()
-        ax.imshow(state["image"])
-        ax.set_title(f"{state['index'] + 1}/{len(pending)}  {split}/{image_path.name}\n"
-                     "Outline visible flame regions; double-click to finish each polygon")
-        ax.axis("off")
+        split, image_path, _ = pending[state["index"]]
+        state["image"] = Image.open(image_path).convert("RGB")
+        width, height = state["image"].size
+        state["mask"] = Image.new("L", (width, height), 0)
+        state["painting"] = False
+        state["previous"] = None
+        scale = min(640 / width, 480 / height, 1.0)
+        canvas_width, canvas_height = max(1, round(width * scale)), max(1, round(height * scale))
+        canvas.width, canvas.height = canvas_width, canvas_height
+        state["canvas_size"] = (canvas_width, canvas_height)
+        image_layer.clear()
+        mask_layer.clear()
+        preview = state["image"].resize((canvas_width, canvas_height))
+        image_layer.put_image_data(np.asarray(preview, dtype=np.uint8), 0, 0)
+        status.value = f"Split: <b>{split}</b> · class ID 1 = visible flame"
+        status.value += "<br>Drag on the canvas to paint; eraser removes strokes."
 
-        def on_polygon(vertices):
-            state["polygons"].append(np.asarray(vertices, dtype=np.float32))
-            ax.add_patch(Polygon(vertices, closed=True, fill=False, edgecolor="yellow", linewidth=2))
-            fig.canvas.draw_idle()
+    def on_mouse_down(x, y):
+        state["painting"] = True
+        state["previous"] = (x, y)
+        paint_segment((x, y), (x, y), int(mode.value))
 
-        state["selector"] = PolygonSelector(ax, on_polygon, useblit=True)
-        status.value = f"Split: <b>{split}</b> · polygons drawn: {len(state['polygons'])}"
-        fig.canvas.draw_idle()
+    def on_mouse_move(x, y):
+        if state["painting"]:
+            point = (x, y)
+            paint_segment(state["previous"], point, int(mode.value))
+            state["previous"] = point
 
-    def on_save(_):
-        if not state["polygons"]:
-            status.value = "Draw at least one flame polygon, or skip this image for review."
-            return
-        split, image_path, mask_path = pending[state["index"]]
-        height, width = state["image"].shape[:2]
-        mask_image = Image.new("L", (width, height), 0)
-        draw = ImageDraw.Draw(mask_image)
-        for polygon in state["polygons"]:
-            points = [(int(round(x)), int(round(y))) for x, y in polygon]
-            draw.polygon(points, fill=1)
-        mask_path.parent.mkdir(parents=True, exist_ok=True)
-        mask_image.save(mask_path)
-        print(f"Saved {split}/{image_path.name} -> {mask_path}")
+    def on_mouse_up(x, y):
+        state["painting"] = False
+        state["previous"] = None
+
+    canvas.on_mouse_down(on_mouse_down)
+    canvas.on_mouse_move(on_mouse_move)
+    canvas.on_mouse_up(on_mouse_up)
+
+    def advance():
         state["index"] += 1
         if state["index"] >= len(pending):
-            if state["selector"] is not None:
-                state["selector"].disconnect_events()
-            ax.clear()
-            ax.axis("off")
-            status.value = "Finished all pending fire images. Review mask overlays before training."
-            fig.canvas.draw_idle()
+            image_layer.clear()
+            mask_layer.clear()
+            status.value = "Finished pending images. Review mask overlays before training."
         else:
             show_current()
+
+    def on_save(_):
+        mask_array = np.asarray(state["mask"], dtype=np.uint8)
+        if not np.any(mask_array == 1):
+            status.value = "No flame pixels painted. Use Save no-flame if there is no visible flame."
+            return
+        split, image_path, mask_path = pending[state["index"]]
+        mask_path.parent.mkdir(parents=True, exist_ok=True)
+        state["mask"].save(mask_path)
+        print(f"Saved {split}/{image_path.name} -> {mask_path}")
+        advance()
+
+    def on_save_no_flame(_):
+        split, image_path, mask_path = pending[state["index"]]
+        mask_path.parent.mkdir(parents=True, exist_ok=True)
+        state["mask"].save(mask_path)
+        print(f"Saved reviewed no-flame mask for {split}/{image_path.name}")
+        advance()
 
     def on_skip(_):
         state["index"] += 1
         if state["index"] >= len(pending):
-            if state["selector"] is not None:
-                state["selector"].disconnect_events()
-            ax.clear()
-            ax.axis("off")
+            image_layer.clear()
+            mask_layer.clear()
             status.value = "Finished pending list; skipped images still need annotation or exclusion."
-            fig.canvas.draw_idle()
         else:
             show_current()
 
     save_button.on_click(on_save)
+    no_flame_button.on_click(on_save_no_flame)
     skip_button.on_click(on_skip)
-    display(widgets.HBox([save_button, skip_button]), status)
+    display(widgets.VBox([
+        canvas,
+        widgets.HBox([mode, brush_size]),
+        widgets.HBox([save_button, no_flame_button, skip_button]),
+        status,
+    ]))
     show_current()
-    plt.show()
 ```
 
 If a fire image has no visible flame, the current annotation cell's skip button leaves it without a mask; either exclude it from this 200-image experiment or intentionally create an all-background mask after reviewing it. Do not let it remain missing when starting training.
